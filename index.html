@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Billing App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="app-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h1>Mobile Billing</h1>
+                    <p>Sign in to access your billing dashboard</p>
+                </div>
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <div class="input-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="username" placeholder="Enter username" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-group">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" placeholder="Enter password" required>
+                        </div>
+                    </div>
+                    <div id="loginError" class="error-message" style="display: none;"></div>
+                    <button type="submit" class="btn btn-primary" id="loginBtn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Signing in...
+                        </span>
+                    </button>
+                </form>
+                <div class="demo-credentials">
+                    <p>Demo Credentials:</p>
+                    <p><strong>Username:</strong> admin</p>
+                    <p><strong>Password:</strong> admin123</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="screen">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="app-logo">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <h1>Mobile Billing</h1>
+                </div>
+                <div class="header-right">
+                    <span class="user-name">Welcome, <span id="userName">Admin</span></span>
+                    <button class="btn btn-outline" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="overview">
+                <i class="fas fa-chart-line"></i>
+                <span>Overview</span>
+            </button>
+            <button class="nav-tab" data-tab="create-bill">
+                <i class="fas fa-file-plus"></i>
+                <span>Create Bill</span>
+            </button>
+            <button class="nav-tab" data-tab="history">
+                <i class="fas fa-history"></i>
+                <span>History</span>
+            </button>
+            <button class="nav-tab" data-tab="users">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </button>
+            <button class="nav-tab" data-tab="inventory">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </button>
+            <button class="nav-tab" data-tab="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Overview Tab -->
+            <div id="overview" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Total Revenue</span>
+                            <i class="fas fa-dollar-sign stat-icon"></i>
+                        </div>
+                        <div class="stat-value" id="totalRevenue">$0.00</div>
+                        <div class="stat-subtitle" id="totalBillsText">From 0 bills</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Total Bills</span>
+                            <i class="fas fa-file-invoice stat-icon"></i>
+                        </div>
+                        <div class="stat-value" id="totalBills">0</div>
+                        <div class="stat-subtitle" id="billLimitText">Limit: 100</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Retail Bills</span>
+                            <i class="fas fa-shopping-cart stat-icon"></i>
+                        </div>
+                        <div class="stat-value" id="retailBills">0</div>
+                        <div class="stat-subtitle">Individual customers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Wholesale Bills</span>
+                            <i class="fas fa-chart-line stat-icon"></i>
+                        </div>
+                        <div class="stat-value" id="wholesaleBills">0</div>
+                        <div class="stat-subtitle">Business customers</div>
+                    </div>
+                </div>
+
+                <!-- Bill Limit Warning -->
+                <div id="billLimitWarning" class="warning-card" style="display: none;">
+                    <div class="warning-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Bill Limit Warning</span>
+                    </div>
+                    <p>You have used <span id="warningCurrentCount">0</span> out of <span id="warningTotalLimit">100</span> bills. Consider increasing your limit in settings.</p>
+                </div>
+
+                <!-- Recent Bills -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Recent Bills</h3>
+                        <p>Your latest billing activity</p>
+                    </div>
+                    <div class="card-content">
+                        <div id="recentBillsList" class="recent-bills-list">
+                            <div class="empty-state">
+                                <i class="fas fa-file-invoice"></i>
+                                <p>No bills created yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Bill Tab -->
+            <div id="create-bill" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-plus"></i> Create New Bill</h3>
+                        <p>Create retail or wholesale bills with automatic invoice generation</p>
+                    </div>
+                    <div class="card-content">
+                        <form id="billForm" class="bill-form">
+                            <!-- Bill Type -->
+                            <div class="form-group">
+                                <label for="billType">Bill Type</label>
+                                <select id="billType" class="form-control">
+                                    <option value="retail">Retail</option>
+                                    <option value="wholesale">Wholesale</option>
+                                </select>
+                            </div>
+
+                            <!-- Customer Information -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="customerName">Customer Name *</label>
+                                    <input type="text" id="customerName" class="form-control" placeholder="Enter customer name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="customerPhone">Phone Number</label>
+                                    <input type="tel" id="customerPhone" class="form-control" placeholder="Enter phone number">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="customerAddress">Address</label>
+                                <textarea id="customerAddress" class="form-control" placeholder="Enter customer address" rows="2"></textarea>
+                            </div>
+
+                            <!-- Items Section -->
+                            <div class="items-section">
+                                <div class="section-header">
+                                    <h4>Items</h4>
+                                    <button type="button" class="btn btn-secondary" id="addBillItemBtn">
+                                        <i class="fas fa-plus"></i> Add Item
+                                    </button>
+                                </div>
+                                <div id="billItemsList" class="items-list">
+                                    <!-- Items will be added dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- Calculations -->
+                            <div class="calculations-section">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="discount">Discount (%)</label>
+                                        <input type="number" id="discount" class="form-control" min="0" max="100" value="0" step="0.01">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tax">Tax (%)</label>
+                                        <input type="number" id="tax" class="form-control" min="0" value="0" step="0.01">
+                                    </div>
+                                </div>
+
+                                <div class="totals-card">
+                                    <div class="total-row">
+                                        <span>Subtotal:</span>
+                                        <span id="subtotalAmount">$0.00</span>
+                                    </div>
+                                    <div class="total-row">
+                                        <span>Discount (<span id="discountPercent">0</span>%):</span>
+                                        <span id="discountAmount">-$0.00</span>
+                                    </div>
+                                    <div class="total-row">
+                                        <span>Tax (<span id="taxPercent">0</span>%):</span>
+                                        <span id="taxAmount">$0.00</span>
+                                    </div>
+                                    <div class="total-row total-final">
+                                        <span>Total:</span>
+                                        <span id="finalTotal">$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="form-group">
+                                <label for="notes">Notes</label>
+                                <textarea id="notes" class="form-control" placeholder="Additional notes or terms" rows="3"></textarea>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-file-invoice"></i> Create Bill
+                                </button>
+                                <button type="button" class="btn btn-outline" id="previewInvoiceBtn">
+                                    <i class="fas fa-eye"></i> Preview Invoice
+                                </button>
+                            </div>
+
+                            <!-- Bill Limit Info -->
+                            <div class="bill-limit-info">
+                                Bills used: <span id="currentBillCount">0</span> / <span id="maxBillLimit">100</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Bill History</h3>
+                        <p>View and manage all your bills</p>
+                    </div>
+                    <div class="card-content">
+                        <!-- Filters -->
+                        <div class="filters">
+                            <div class="search-group">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchBills" class="form-control" placeholder="Search by customer name or bill number...">
+                            </div>
+                            <select id="filterType" class="form-control">
+                                <option value="all">All Types</option>
+                                <option value="retail">Retail</option>
+                                <option value="wholesale">Wholesale</option>
+                            </select>
+                            <select id="sortBy" class="form-control">
+                                <option value="date">Sort by Date</option>
+                                <option value="amount">Sort by Amount</option>
+                                <option value="customer">Sort by Customer</option>
+                            </select>
+                        </div>
+
+                        <!-- Bills List -->
+                        <div id="billsList" class="bills-list">
+                            <div class="empty-state">
+                                <i class="fas fa-calendar"></i>
+                                <h4>No bills found</h4>
+                                <p>Get started by creating your first bill.</p>
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div id="billsSummary" class="bills-summary" style="display: none;">
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <div class="summary-value" id="summaryTotalBills">0</div>
+                                    <div class="summary-label">Total Bills</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-value" id="summaryTotalRevenue">$0.00</div>
+                                    <div class="summary-label">Total Revenue</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-value" id="summaryRetailBills">0</div>
+                                    <div class="summary-label">Retail Bills</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-value" id="summaryWholesaleBills">0</div>
+                                    <div class="summary-label">Wholesale Bills</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="users" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-action">
+                            <div>
+                                <h3><i class="fas fa-users"></i> User Management</h3>
+                                <p>Manage user accounts and permissions</p>
+                            </div>
+                            <button class="btn btn-primary" id="addUserBtn">
+                                <i class="fas fa-plus"></i> Add User
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="usersList" class="users-list">
+                            <!-- Users will be loaded dynamically -->
+                        </div>
+
+                        <!-- User Summary -->
+                        <div id="usersSummary" class="users-summary">
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <div class="summary-value" id="totalUsers">1</div>
+                                    <div class="summary-label">Total Users</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-value" id="activeUsers">1</div>
+                                    <div class="summary-label">Active Users</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-value" id="adminUsers">1</div>
+                                    <div class="summary-label">Admins</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-value" id="regularUsers">0</div>
+                                    <div class="summary-label">Regular Users</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="inventory" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-with-action">
+                            <div>
+                                <h3><i class="fas fa-boxes"></i> Inventory Management</h3>
+                                <p>Manage your items, stock levels, and inventory tracking</p>
+                            </div>
+                            <button class="btn btn-primary" id="addItemBtn">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <!-- Inventory Stats -->
+                        <div class="inventory-stats">
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">Total Items</span>
+                                    <i class="fas fa-cube stat-icon"></i>
+                                </div>
+                                <div class="stat-value" id="totalItems">0</div>
+                                <div class="stat-subtitle">In inventory</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">Low Stock Items</span>
+                                    <i class="fas fa-exclamation-triangle stat-icon"></i>
+                                </div>
+                                <div class="stat-value" id="lowStockItems">0</div>
+                                <div class="stat-subtitle">Need restocking</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">Total Stock Value</span>
+                                    <i class="fas fa-dollar-sign stat-icon"></i>
+                                </div>
+                                <div class="stat-value" id="totalStockValue">$0.00</div>
+                                <div class="stat-subtitle">Current inventory value</div>
+                            </div>
+                        </div>
+
+                        <!-- Inventory Filters -->
+                        <div class="filters">
+                            <div class="search-group">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchItems" class="form-control" placeholder="Search items...">
+                            </div>
+                            <select id="filterCategory" class="form-control">
+                                <option value="all">All Categories</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="food">Food</option>
+                                <option value="books">Books</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <select id="filterStock" class="form-control">
+                                <option value="all">All Stock Levels</option>
+                                <option value="in-stock">In Stock</option>
+                                <option value="low-stock">Low Stock</option>
+                                <option value="out-of-stock">Out of Stock</option>
+                            </select>
+                        </div>
+
+                        <!-- Items List -->
+                        <div id="itemsList" class="items-inventory-list">
+                            <div class="empty-state">
+                                <i class="fas fa-boxes"></i>
+                                <h4>No items found</h4>
+                                <p>Get started by adding your first inventory item.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opening/Closing Balance Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-balance-scale"></i> Stock Balance Management</h3>
+                        <p>Manage opening and closing stock balances</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="balance-actions">
+                            <button class="btn btn-primary" id="openingBalanceBtn">
+                                <i class="fas fa-play"></i> Set Opening Balance
+                            </button>
+                            <button class="btn btn-secondary" id="closingBalanceBtn">
+                                <i class="fas fa-stop"></i> Generate Closing Balance
+                            </button>
+                            <button class="btn btn-outline" id="exportInventoryBtn">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+                <div class="settings-container">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cog"></i> Application Settings</h3>
+                            <p>Configure your billing application preferences</p>
+                        </div>
+                        <div class="card-content">
+                            <form id="settingsForm">
+                                <!-- Bill Limits -->
+                                <div class="settings-section">
+                                    <h4><i class="fas fa-chart-bar"></i> Bill Limits</h4>
+                                    <p>Set the maximum number of bills that can be created</p>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="billLimit">Maximum Bills</label>
+                                            <input type="number" id="billLimit" class="form-control" min="1" value="100">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Current Usage</label>
+                                            <div class="usage-display">
+                                                <p id="usageText">0 / 100 bills used</p>
+                                                <div class="progress-bar">
+                                                    <div id="usageProgress" class="progress-fill" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Company Information -->
+                                <div class="settings-section">
+                                    <h4><i class="fas fa-building"></i> Company Information</h4>
+                                    <p>This information will appear on your invoices</p>
+                                    
+                                    <div class="form-group">
+                                        <label for="companyName">Company Name</label>
+                                        <input type="text" id="companyName" class="form-control" placeholder="Enter your company name" value="Your Company">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="companyAddress">Company Address</label>
+                                        <textarea id="companyAddress" class="form-control" placeholder="Enter your company address" rows="3">123 Business St, City, State 12345</textarea>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="companyPhone">Phone Number</label>
+                                            <input type="tel" id="companyPhone" class="form-control" placeholder="Enter phone number" value="+1 (555) 123-4567">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="companyEmail">Email Address</label>
+                                            <input type="email" id="companyEmail" class="form-control" placeholder="Enter email address" value="info@yourcompany.com">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Save Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Settings Preview -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Settings Preview</h3>
+                            <p>Preview how your company information will appear on invoices</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="invoice-preview">
+                                <div class="preview-header">
+                                    <h2>INVOICE</h2>
+                                </div>
+                                <div class="preview-company">
+                                    <h3 id="previewCompanyName">Your Company</h3>
+                                    <p id="previewCompanyAddress">123 Business St, City, State 12345</p>
+                                    <p>Phone: <span id="previewCompanyPhone">+1 (555) 123-4567</span></p>
+                                    <p>Email: <span id="previewCompanyEmail">info@yourcompany.com</span></p>
+                                </div>
+                                <div class="preview-note">
+                                    <p>This is how your company information will appear on invoices</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New User</h3>
+                <button class="modal-close" id="closeAddUserModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newUsername">Username</label>
+                            <input type="text" id="newUsername" class="form-control" placeholder="Enter username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newUserName">Full Name</label>
+                            <input type="text" id="newUserName" class="form-control" placeholder="Enter full name" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newUserEmail">Email</label>
+                        <input type="email" id="newUserEmail" class="form-control" placeholder="Enter email address" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newUserRole">Role</label>
+                            <select id="newUserRole" class="form-control">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="newUserStatus">Status</label>
+                            <select id="newUserStatus" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" id="cancelAddUser">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit User</h3>
+                <button class="modal-close" id="closeEditUserModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editUsername">Username</label>
+                            <input type="text" id="editUsername" class="form-control" placeholder="Enter username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editUserName">Full Name</label>
+                            <input type="text" id="editUserName" class="form-control" placeholder="Enter full name" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserEmail">Email</label>
+                        <input type="email" id="editUserEmail" class="form-control" placeholder="Enter email address" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editUserRole">Role</label>
+                            <select id="editUserRole" class="form-control">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editUserStatus">Status</label>
+                            <select id="editUserStatus" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" id="cancelEditUser">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="addItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Item</h3>
+                <button class="modal-close" id="closeAddItemModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemName">Item Name</label>
+                            <input type="text" id="itemName" class="form-control" placeholder="Enter item name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemCategory">Category</label>
+                            <select id="itemCategory" class="form-control" required>
+                                <option value="">Select Category</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="food">Food</option>
+                                <option value="books">Books</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemPrice">Unit Price</label>
+                            <input type="number" id="itemPrice" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemStock">Initial Stock</label>
+                            <input type="number" id="itemStock" class="form-control" min="0" placeholder="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemMinStock">Minimum Stock Level</label>
+                            <input type="number" id="itemMinStock" class="form-control" min="0" placeholder="5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemUnit">Unit</label>
+                            <select id="itemUnit" class="form-control" required>
+                                <option value="pcs">Pieces</option>
+                                <option value="kg">Kilograms</option>
+                                <option value="ltr">Liters</option>
+                                <option value="box">Box</option>
+                                <option value="pack">Pack</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemDescription">Description</label>
+                        <textarea id="itemDescription" class="form-control" placeholder="Item description (optional)" rows="2"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" id="cancelAddItem">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="editItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Item</h3>
+                <button class="modal-close" id="closeEditItemModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm">
+                    <input type="hidden" id="editItemId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editItemName">Item Name</label>
+                            <input type="text" id="editItemName" class="form-control" placeholder="Enter item name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editItemCategory">Category</label>
+                            <select id="editItemCategory" class="form-control" required>
+                                <option value="">Select Category</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="food">Food</option>
+                                <option value="books">Books</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editItemPrice">Unit Price</label>
+                            <input type="number" id="editItemPrice" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editItemStock">Current Stock</label>
+                            <input type="number" id="editItemStock" class="form-control" min="0" placeholder="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editItemMinStock">Minimum Stock Level</label>
+                            <input type="number" id="editItemMinStock" class="form-control" min="0" placeholder="5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editItemUnit">Unit</label>
+                            <select id="editItemUnit" class="form-control" required>
+                                <option value="pcs">Pieces</option>
+                                <option value="kg">Kilograms</option>
+                                <option value="ltr">Liters</option>
+                                <option value="box">Box</option>
+                                <option value="pack">Pack</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editItemDescription">Description</label>
+                        <textarea id="editItemDescription" class="form-control" placeholder="Item description (optional)" rows="2"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" id="cancelEditItem">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Opening Balance Modal -->
+    <div id="openingBalanceModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Set Opening Balance</h3>
+                <button class="modal-close" id="closeOpeningBalanceModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Set the opening stock quantities for all items. This will update your current inventory levels.</p>
+                <div id="openingBalanceList" class="opening-balance-list">
+                    <!-- Items will be loaded dynamically -->
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" id="cancelOpeningBalance">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveOpeningBalance">Save Opening Balance</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Closing Balance Modal -->
+    <div id="closingBalanceModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Generate Closing Balance</h3>
+                <button class="modal-close" id="closeClosingBalanceModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Review and confirm the closing stock quantities. This will generate a closing balance report.</p>
+                <div id="closingBalanceList" class="closing-balance-list">
+                    <!-- Items will be loaded dynamically -->
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" id="cancelClosingBalance">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="generateClosingBalance">Generate Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
